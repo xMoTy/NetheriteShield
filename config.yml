@@ -1,1 +1,3 @@
 display-name: 'Netherite Shield'
+permission-node: 'none'
+no-permission: '&cYou don''t have the permission to smith Netherite Shield!'
