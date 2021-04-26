@@ -3,3 +3,7 @@ name: NetheriteShield
 version: 1.0
 author: xMoTy
 api-version: 1.16
+commands:
+  netheriteshield:
+    description: Main Command
+    aliases: [ns]

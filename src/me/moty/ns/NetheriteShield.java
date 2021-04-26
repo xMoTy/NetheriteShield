@@ -1,6 +1,8 @@
 package me.moty.ns;
 
 import java.io.File;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -37,12 +39,15 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public class NetheriteShield extends JavaPlugin implements Listener {
-	private FileConfiguration config;
+	public FileConfiguration config;
 	private String displayName;
 	private String permissionNode;
 	private String noPermission;
+	public DyeColor baseColor;
+	public List<Pattern> patterns;
 	private NamespacedKey key = new NamespacedKey(this, "neitherite-shield");
 
+	@Override
 	public void onEnable() {
 		Bukkit.getConsoleSender().sendMessage(ChatColor.DARK_GRAY + "�ССССССССССССССССССССС�");
 		Bukkit.getConsoleSender()
@@ -54,13 +59,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			getDataFolder().mkdir();
 			saveResource("config.yml", false);
 		}
-		this.config = this.getConfig();
-		this.displayName = config.isSet("display-name") ? config.getString("display-name") : "Netherite Shield";
-		this.permissionNode = config.isSet("permission-node")
-				? config.getString("permission-node") != "none" ? config.getString("permission-node") : null
-				: null;
-		this.noPermission = config.isSet("no-permission") ? config.getString("no-permission")
-				: "&cYou don't have permission to smith Netherite Shield!";
+		reloadConfiguration();
 
 		SmithingRecipe sr = new SmithingRecipe(key, new ItemStack(Material.SHIELD),
 				new RecipeChoice.MaterialChoice(Material.SHIELD),
@@ -71,7 +70,24 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		}
 		this.getServer().addRecipe(sr);
 
+		getCommand("netheriteshield").setExecutor(new CommandNetheriteShield(this));
 		getServer().getPluginManager().registerEvents(this, this);
+	}
+
+	@SuppressWarnings("unchecked")
+	public void reloadConfiguration() {
+		this.config = this.getConfig();
+		this.displayName = config.isSet("display-name") ? config.getString("display-name") : "Netherite Shield";
+		this.permissionNode = config.isSet("permission-node")
+				? config.getString("permission-node") != "none" ? config.getString("permission-node") : null
+				: null;
+		this.noPermission = config.isSet("no-permission") ? config.getString("no-permission")
+				: "&cYou don't have permission to smith Netherite Shield!";
+		patterns = config.isSet("patterns") ? (List<Pattern>) config.getList("patterns")
+				: Arrays.asList(new Pattern(DyeColor.GRAY, PatternType.GRADIENT),
+						new Pattern(DyeColor.GRAY, PatternType.BORDER),
+						new Pattern(DyeColor.BLACK, PatternType.TRIANGLE_TOP));
+		baseColor = config.isSet("base-color") ? DyeColor.valueOf(config.getString("base-color")) : DyeColor.BLACK;
 	}
 
 	public ItemStack makeShield(ItemStack shield) {
@@ -82,10 +98,10 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		BlockStateMeta bmeta = (BlockStateMeta) meta;
 
 		Banner banner = (Banner) bmeta.getBlockState();
-		banner.setBaseColor(DyeColor.BLACK);
-		banner.addPattern(new Pattern(DyeColor.GRAY, PatternType.GRADIENT));
-		banner.addPattern(new Pattern(DyeColor.GRAY, PatternType.BORDER));
-		banner.addPattern(new Pattern(DyeColor.BLACK, PatternType.TRIANGLE_TOP));
+		banner.setBaseColor(baseColor);
+		for (Pattern pat : patterns) {
+			banner.addPattern(pat);
+		}
 		banner.update();
 		bmeta.setBlockState(banner);
 
@@ -110,6 +126,25 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		shield.setItemMeta(bmeta);
 
 		return shield;
+	}
+
+	public void setPatterns(ItemStack shield) {
+		if (shield == null) {
+			config.set("patterns", null);
+			config.set("base-color", null);
+			saveConfig();
+			reloadConfiguration();
+			return;
+		}
+		ItemMeta meta = shield.getItemMeta();
+		BlockStateMeta bmeta = (BlockStateMeta) meta;
+		Banner banner = (Banner) bmeta.getBlockState();
+		if (banner.numberOfPatterns() > 0) {
+			config.set("patterns", banner.getPatterns());
+			config.set("base-color", banner.getBaseColor().name());
+			saveConfig();
+			reloadConfiguration();
+		}
 	}
 
 	@EventHandler
@@ -144,7 +179,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				Damageable damage = (Damageable) meta;
 				damage.setDamage(damage.getDamage() + (e.getPlayer().getFireTicks() / 20 / 2));
 				e.getItem().setItemMeta(meta);
-				e.getPlayer().setFireTicks(4);
+				e.getPlayer().setFireTicks(0);
 				return;
 			}
 		}
