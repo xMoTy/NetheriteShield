@@ -31,6 +31,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
+import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.SmithingRecipe;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.Damageable;
@@ -43,9 +44,11 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	private String displayName;
 	private String permissionNode;
 	private String noPermission;
+	private boolean craftable;
 	public DyeColor baseColor;
 	public List<Pattern> patterns;
 	private NamespacedKey key = new NamespacedKey(this, "neitherite-shield");
+	private NamespacedKey crafting = new NamespacedKey(this, "shaped-nethrite-shield");
 
 	@Override
 	public void onEnable() {
@@ -61,14 +64,14 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		}
 		reloadConfiguration();
 
-		SmithingRecipe sr = new SmithingRecipe(key, new ItemStack(Material.SHIELD),
+		SmithingRecipe smith = new SmithingRecipe(key, new ItemStack(Material.SHIELD),
 				new RecipeChoice.MaterialChoice(Material.SHIELD),
 				new RecipeChoice.MaterialChoice(Material.NETHERITE_INGOT));
 
 		if (this.getServer().getRecipe(key) != null) {
 			this.getServer().removeRecipe(key);
 		}
-		this.getServer().addRecipe(sr);
+		this.getServer().addRecipe(smith);
 
 		getCommand("netheriteshield").setExecutor(new CommandNetheriteShield(this));
 		getServer().getPluginManager().registerEvents(this, this);
@@ -79,19 +82,35 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		this.config = this.getConfig();
 		this.displayName = config.isSet("display-name") ? config.getString("display-name") : "Netherite Shield";
 		this.permissionNode = config.isSet("permission-node")
-				? config.getString("permission-node") != "none" ? config.getString("permission-node") : null
+				? !config.getString("permission-node").equalsIgnoreCase("none") ? config.getString("permission-node")
+						: null
 				: null;
 		this.noPermission = config.isSet("no-permission") ? config.getString("no-permission")
 				: "&cYou don't have permission to smith Netherite Shield!";
-		patterns = config.isSet("patterns") ? (List<Pattern>) config.getList("patterns")
+		this.patterns = config.isSet("patterns") ? (List<Pattern>) config.getList("patterns")
 				: Arrays.asList(new Pattern(DyeColor.GRAY, PatternType.GRADIENT),
 						new Pattern(DyeColor.GRAY, PatternType.BORDER),
 						new Pattern(DyeColor.BLACK, PatternType.TRIANGLE_TOP));
-		baseColor = config.isSet("base-color") ? DyeColor.valueOf(config.getString("base-color")) : DyeColor.BLACK;
+		this.baseColor = config.isSet("base-color") ? DyeColor.valueOf(config.getString("base-color")) : DyeColor.BLACK;
+		this.craftable = config.isSet("craftable") ? config.getBoolean("craftable") : false;
+
+		if (craftable) {
+			ShapedRecipe craft = new ShapedRecipe(crafting, makeShield(null));
+			craft.shape("WNW", "WWW", " W ");
+			craft.setIngredient('W',
+					new RecipeChoice.MaterialChoice(Material.ACACIA_PLANKS, Material.BIRCH_PLANKS,
+							Material.CRIMSON_PLANKS, Material.DARK_OAK_PLANKS, Material.JUNGLE_PLANKS,
+							Material.OAK_PLANKS, Material.SPRUCE_PLANKS));
+			craft.setIngredient('N', Material.NETHERITE_INGOT);
+			if (this.getServer().getRecipe(crafting) != null) {
+				this.getServer().removeRecipe(crafting);
+			}
+			this.getServer().addRecipe(craft);
+		}
 	}
 
 	public ItemStack makeShield(ItemStack shield) {
-		if (shield.getType() != Material.SHIELD) {
+		if (shield == null || shield.getType() != Material.SHIELD) {
 			shield = new ItemStack(Material.SHIELD);
 		}
 		ItemMeta meta = shield.getItemMeta();
@@ -160,8 +179,26 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 						e.getWhoClicked().sendMessage(ChatColor.translateAlternateColorCodes('&', this.noPermission));
 						return;
 					}
+					if (e.getInventory().getItem(0).getItemMeta().getPersistentDataContainer().has(key,
+							PersistentDataType.STRING)) {
+						e.setCancelled(true);
+						return;
+					}
 					ItemStack source = e.getInventory().getItem(0);
 					e.getInventory().setItem(e.getRawSlot(), makeShield((source)));
+					return;
+				}
+			}
+		} else if (e.getInventory().getType() == InventoryType.WORKBENCH) {
+			if (e.isLeftClick() && e.getRawSlot() == 0) {
+				if (!e.getInventory().getItem(0).getItemMeta().getPersistentDataContainer().has(key,
+						PersistentDataType.STRING)) {
+					return;
+				}
+				if (this.permissionNode != null && !e.getWhoClicked().hasPermission(this.permissionNode)) {
+					e.setCancelled(true);
+					e.getWhoClicked().closeInventory();
+					e.getWhoClicked().sendMessage(ChatColor.translateAlternateColorCodes('&', this.noPermission));
 					return;
 				}
 			}
