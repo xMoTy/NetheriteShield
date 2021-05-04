@@ -1,15 +1,21 @@
 package me.moty.ns;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Scanner;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Tag;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.block.Banner;
@@ -38,13 +44,14 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Consumer;
 
 public class NetheriteShield extends JavaPlugin implements Listener {
 	public FileConfiguration config;
 	private String displayName;
 	private String permissionNode;
 	private String noPermission;
-	private boolean craftable;
+	private boolean craftable, smithing;
 	public DyeColor baseColor;
 	public List<Pattern> patterns;
 	private NamespacedKey key = new NamespacedKey(this, "neitherite-shield");
@@ -62,16 +69,13 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			getDataFolder().mkdir();
 			saveResource("config.yml", false);
 		}
+		getVersion(version -> {
+			if (!this.getDescription().getVersion().equalsIgnoreCase(version)) {
+				this.getLogger().info(ChatColor.LIGHT_PURPLE + "There is a new update available: " + version);
+			}
+		});
+		new Metrics(this, 11196);
 		reloadConfiguration();
-
-		SmithingRecipe smith = new SmithingRecipe(key, new ItemStack(Material.SHIELD),
-				new RecipeChoice.MaterialChoice(Material.SHIELD),
-				new RecipeChoice.MaterialChoice(Material.NETHERITE_INGOT));
-
-		if (this.getServer().getRecipe(key) != null) {
-			this.getServer().removeRecipe(key);
-		}
-		this.getServer().addRecipe(smith);
 
 		getCommand("netheriteshield").setExecutor(new CommandNetheriteShield(this));
 		getServer().getPluginManager().registerEvents(this, this);
@@ -92,21 +96,56 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 						new Pattern(DyeColor.GRAY, PatternType.BORDER),
 						new Pattern(DyeColor.BLACK, PatternType.TRIANGLE_TOP));
 		this.baseColor = config.isSet("base-color") ? DyeColor.valueOf(config.getString("base-color")) : DyeColor.BLACK;
-		this.craftable = config.isSet("craftable") ? config.getBoolean("craftable") : false;
+		this.craftable = config.isSet("crafting") ? config.getBoolean("crafting.enabled") : false;
+		this.smithing = config.isSet("smithing") ? config.getBoolean("smithing") : true;
+		if (smithing) {
+			SmithingRecipe smith = new SmithingRecipe(key, new ItemStack(Material.SHIELD),
+					new RecipeChoice.MaterialChoice(Material.SHIELD),
+					new RecipeChoice.MaterialChoice(Material.NETHERITE_INGOT));
 
+			if (this.getServer().getRecipe(key) != null) {
+				this.getServer().removeRecipe(key);
+			}
+			this.getServer().addRecipe(smith);
+		}
 		if (craftable) {
 			ShapedRecipe craft = new ShapedRecipe(crafting, makeShield(null));
-			craft.shape("WNW", "WWW", " W ");
-			craft.setIngredient('W',
-					new RecipeChoice.MaterialChoice(Material.ACACIA_PLANKS, Material.BIRCH_PLANKS,
-							Material.CRIMSON_PLANKS, Material.DARK_OAK_PLANKS, Material.JUNGLE_PLANKS,
-							Material.OAK_PLANKS, Material.SPRUCE_PLANKS));
-			craft.setIngredient('N', Material.NETHERITE_INGOT);
+			List<String> shape = config.isSet("crafting.shape") ? config.getStringList("crafting.shape")
+					: Arrays.asList("WNW", "WWW", " W ");
+			craft.shape(shape.toArray(new String[3]));
+			if (config.isSet("crafting.items")) {
+				for (String key : config.getConfigurationSection("crafting.items").getKeys(false)) {
+					if (config.get("crafting.items." + key) instanceof String) {
+						craft.setIngredient(key.charAt(0), Material.valueOf(config.getString("crafting.items." + key)));
+					} else {
+						craft.setIngredient(key.charAt(0),
+								new RecipeChoice.MaterialChoice(config.getStringList("crafting.items." + key).stream()
+										.map(mat -> Material.valueOf(mat)).collect(Collectors.toList())));
+					}
+				}
+			} else {
+				craft.setIngredient('W', new RecipeChoice.MaterialChoice(Tag.PLANKS));
+				craft.setIngredient('N', Material.NETHERITE_INGOT);
+			}
 			if (this.getServer().getRecipe(crafting) != null) {
 				this.getServer().removeRecipe(crafting);
 			}
 			this.getServer().addRecipe(craft);
 		}
+
+	}
+
+	public void getVersion(final Consumer<String> consumer) {
+		Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
+			try (InputStream inputStream = new URL("https://api.spigotmc.org/legacy/update.php?resource=" + "91813")
+					.openStream(); Scanner scanner = new Scanner(inputStream)) {
+				if (scanner.hasNext()) {
+					consumer.accept(scanner.next());
+				}
+			} catch (IOException exception) {
+				this.getLogger().info("Cannot look for updates: " + exception.getMessage());
+			}
+		});
 	}
 
 	public ItemStack makeShield(ItemStack shield) {
@@ -168,7 +207,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 
 	@EventHandler
 	public void onInventoryClick(InventoryClickEvent e) {
-		if (e.getInventory().getType() == InventoryType.SMITHING) {
+		if (e.getInventory().getType() == InventoryType.SMITHING && smithing) {
 			if (e.isLeftClick() && e.getRawSlot() == 2) {
 				if (e.getInventory().getItem(0).getType() == Material.SHIELD
 						&& e.getInventory().getItem(1).getType() == Material.NETHERITE_INGOT
@@ -189,7 +228,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 					return;
 				}
 			}
-		} else if (e.getInventory().getType() == InventoryType.WORKBENCH) {
+		} else if (e.getInventory().getType() == InventoryType.WORKBENCH && craftable) {
 			if (e.isLeftClick() && e.getRawSlot() == 0) {
 				if (!e.getInventory().getItem(0).getItemMeta().getPersistentDataContainer().has(key,
 						PersistentDataType.STRING)) {
