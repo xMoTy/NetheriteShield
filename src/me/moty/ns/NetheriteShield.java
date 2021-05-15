@@ -230,10 +230,11 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			}
 		} else if (e.getInventory().getType() == InventoryType.WORKBENCH && craftable) {
 			if (e.isLeftClick() && e.getRawSlot() == 0) {
-				if (!e.getInventory().getItem(0).getItemMeta().getPersistentDataContainer().has(key,
-						PersistentDataType.STRING)) {
+				if (e.getInventory().getItem(0) == null || !e.getInventory().getItem(0).hasItemMeta())
 					return;
-				}
+				if (!e.getInventory().getItem(0).getItemMeta().getPersistentDataContainer().has(key,
+						PersistentDataType.STRING))
+					return;
 				if (this.permissionNode != null && !e.getWhoClicked().hasPermission(this.permissionNode)) {
 					e.setCancelled(true);
 					e.getWhoClicked().closeInventory();
@@ -265,6 +266,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	public void onEntityDamage(EntityDamageEvent e) {
 		if (e.getEntityType() == EntityType.DROPPED_ITEM) {
 			if (!(e.getEntity() instanceof Item))
+				return;
+			if (e.getCause() != DamageCause.FIRE && e.getCause() != DamageCause.FIRE_TICK)
 				return;
 			ItemStack is = ((Item) e.getEntity()).getItemStack();
 			if (is.getType() == Material.SHIELD
