@@ -2,6 +2,12 @@ display-name: 'Netherite Shield'
 permission-node: 'none'
 no-permission: '&cYou don''t have the permission to build Netherite Shield!'
 smithing: true
+hide-attribute: false
+attributes:
+  ATTACK_DAMAGE: 2
+  ATTACK_SPEED: -1.5
+  MOVEMENT_SPEED: -0.02
+  MAX_HEALTH: 4
 crafting:
   enabled: false
   items:

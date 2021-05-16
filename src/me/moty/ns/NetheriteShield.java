@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Scanner;
 import java.util.UUID;
@@ -51,9 +52,10 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	private String displayName;
 	private String permissionNode;
 	private String noPermission;
-	private boolean craftable, smithing;
+	private boolean craftable, smithing, hideAttribute;
 	public DyeColor baseColor;
 	public List<Pattern> patterns;
+	private HashMap<Attribute, Double> attributes = new HashMap<>();
 	private NamespacedKey key = new NamespacedKey(this, "neitherite-shield");
 	private NamespacedKey crafting = new NamespacedKey(this, "shaped-nethrite-shield");
 
@@ -98,6 +100,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		this.baseColor = config.isSet("base-color") ? DyeColor.valueOf(config.getString("base-color")) : DyeColor.BLACK;
 		this.craftable = config.isSet("crafting") ? config.getBoolean("crafting.enabled") : false;
 		this.smithing = config.isSet("smithing") ? config.getBoolean("smithing") : true;
+		this.hideAttribute = config.isSet("hide-attribute") ? config.getBoolean("hide-attribute") : false;
+
 		if (smithing) {
 			SmithingRecipe smith = new SmithingRecipe(key, new ItemStack(Material.SHIELD),
 					new RecipeChoice.MaterialChoice(Material.SHIELD),
@@ -107,6 +111,19 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				this.getServer().removeRecipe(key);
 			}
 			this.getServer().addRecipe(smith);
+		}
+		if (config.isSet("attributes")) {
+			for (String key : config.getConfigurationSection("attributes").getKeys(false)) {
+				attributes.put(Attribute.valueOf("GENERIC_" + key), config.getDouble("attributes." + key));
+			}
+		} else {
+			attributes.put(Attribute.GENERIC_ATTACK_DAMAGE, 2D);
+			attributes.put(Attribute.GENERIC_ATTACK_SPEED, -1.5D);
+			attributes.put(Attribute.GENERIC_MOVEMENT_SPEED, -0.02D);
+			attributes.put(Attribute.GENERIC_MAX_HEALTH, 4D);
+		}
+		if (this.getServer().getRecipe(crafting) != null) {
+			this.getServer().removeRecipe(crafting);
 		}
 		if (craftable) {
 			ShapedRecipe craft = new ShapedRecipe(crafting, makeShield(null));
@@ -126,9 +143,6 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			} else {
 				craft.setIngredient('W', new RecipeChoice.MaterialChoice(Tag.PLANKS));
 				craft.setIngredient('N', Material.NETHERITE_INGOT);
-			}
-			if (this.getServer().getRecipe(crafting) != null) {
-				this.getServer().removeRecipe(crafting);
 			}
 			this.getServer().addRecipe(craft);
 		}
@@ -167,20 +181,19 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			meta.setDisplayName(ChatColor.RESET + ChatColor.translateAlternateColorCodes('&', displayName));
 
 		meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
+		if (!attributes.isEmpty())
+			for (Attribute att : attributes.keySet()) {
+				meta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(), attributes.get(att),
+						AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
+				meta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(), attributes.get(att),
+						AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.OFF_HAND));
+			}
 
-		meta.addAttributeModifier(Attribute.GENERIC_ATTACK_SPEED, new AttributeModifier(UUID.randomUUID(),
-				"GENERIC_ATTACK_SPEED", -1.5, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
-		meta.addAttributeModifier(Attribute.GENERIC_ATTACK_DAMAGE, new AttributeModifier(UUID.randomUUID(),
-				"GENERIC_ATTACK_DAMAGE", 2, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
-		meta.addAttributeModifier(Attribute.GENERIC_MOVEMENT_SPEED, new AttributeModifier(UUID.randomUUID(),
-				"GENERIC_MOVEMENT_SPEED", -0.02, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
-		meta.addAttributeModifier(Attribute.GENERIC_MOVEMENT_SPEED, new AttributeModifier(UUID.randomUUID(),
-				"GENERIC_MOVEMENT_SPEED", -0.02, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.OFF_HAND));
-		meta.addAttributeModifier(Attribute.GENERIC_MAX_HEALTH, new AttributeModifier(UUID.randomUUID(),
-				"GENERIC_MAX_HEALTH", 4, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
-		meta.addAttributeModifier(Attribute.GENERIC_MAX_HEALTH, new AttributeModifier(UUID.randomUUID(),
-				"GENERIC_MAX_HEALTH", 4, AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.OFF_HAND));
 		meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "neitherite-shield");
+
+		if (hideAttribute) {
+			meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+		}
 		shield.setItemMeta(bmeta);
 
 		return shield;
@@ -267,7 +280,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		if (e.getEntityType() == EntityType.DROPPED_ITEM) {
 			if (!(e.getEntity() instanceof Item))
 				return;
-			if (e.getCause() != DamageCause.FIRE && e.getCause() != DamageCause.FIRE_TICK)
+			if (e.getCause() != DamageCause.LAVA && e.getCause() != DamageCause.FIRE
+					&& e.getCause() != DamageCause.FIRE_TICK && e.getCause() != DamageCause.HOT_FLOOR)
 				return;
 			ItemStack is = ((Item) e.getEntity()).getItemStack();
 			if (is.getType() == Material.SHIELD
