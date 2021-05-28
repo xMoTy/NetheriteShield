@@ -185,8 +185,10 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			for (Attribute att : attributes.keySet()) {
 				meta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(), attributes.get(att),
 						AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
-				meta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(), attributes.get(att),
-						AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.OFF_HAND));
+				if (att != Attribute.GENERIC_ATTACK_DAMAGE && att != Attribute.GENERIC_ATTACK_KNOCKBACK
+						&& att != Attribute.GENERIC_ATTACK_SPEED)
+					meta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(),
+							attributes.get(att), AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.OFF_HAND));
 			}
 
 		meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "neitherite-shield");
