@@ -16,7 +16,7 @@ crafting:
   enabled: false
   items:
     W:
-   - ACACIA_PLANKS
+    - ACACIA_PLANKS
     - BIRCH_PLANKS
     - CRIMSON_PLANKS
     - DARK_OAK_PLANKS
@@ -26,6 +26,6 @@ crafting:
     - WARPED_PLANKS
     N: NETHERITE_INGOT
   shape:
- - 'WNW'
+  - 'WNW'
   - 'WWW'
   - ' W '

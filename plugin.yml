@@ -1,6 +1,6 @@
 main: me.moty.ns.NetheriteShield
 name: NetheriteShield
-version: 1.5
+version: 1.7.1
 author: xMoTy
 api-version: 1.16
 commands:
