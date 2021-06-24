@@ -52,7 +52,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	private String displayName;
 	private String permissionNode;
 	private String noPermission;
-	private boolean craftable, smithing, hideAttribute;
+	private boolean craftable, smithing, hideAttribute, fallMitigation, fireResistance, fireProof;
 	public DyeColor baseColor;
 	public List<Pattern> patterns;
 	private HashMap<Attribute, Double> attributes = new HashMap<>();
@@ -100,6 +100,12 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		this.baseColor = config.isSet("base-color") ? DyeColor.valueOf(config.getString("base-color")) : DyeColor.BLACK;
 		this.craftable = config.isSet("crafting") ? config.getBoolean("crafting.enabled") : false;
 		this.smithing = config.isSet("smithing") ? config.getBoolean("smithing") : true;
+		this.fallMitigation = config.isSet("features.fall-damage-mitigation")
+				? config.getBoolean("features.fall-damage-mitigation")
+				: true;
+		this.fireResistance = config.isSet("features.fire-resistance") ? config.getBoolean("features.fire-resistance")
+				: true;
+		this.fireProof = config.isSet("features.fire-proof") ? config.getBoolean("features.fire-proof") : true;
 		this.hideAttribute = config.isSet("hide-attribute") ? config.getBoolean("hide-attribute") : false;
 
 		if (smithing) {
@@ -262,6 +268,9 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 
 	@EventHandler
 	public void onRaiseShield(PlayerInteractEvent e) {
+		if (!this.fireResistance) {
+			return;
+		}
 		if (e.getMaterial() == Material.SHIELD
 				&& e.getItem().getItemMeta().getPersistentDataContainer().has(key, PersistentDataType.STRING)
 				&& (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK)) {
@@ -280,6 +289,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	@EventHandler
 	public void onEntityDamage(EntityDamageEvent e) {
 		if (e.getEntityType() == EntityType.DROPPED_ITEM) {
+			if (!this.fireProof)
+				return;
 			if (!(e.getEntity() instanceof Item))
 				return;
 			if (e.getCause() != DamageCause.LAVA && e.getCause() != DamageCause.FIRE
@@ -294,6 +305,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		} else if (e.getEntityType() == EntityType.PLAYER) {
 			Player p = (Player) e.getEntity();
 			if (e.getCause() != DamageCause.FALL)
+				return;
+			if (!this.fallMitigation)
 				return;
 			if (p.getInventory().getItemInMainHand().getType() == Material.SHIELD
 					|| p.getInventory().getItemInOffHand().getType() == Material.SHIELD) {

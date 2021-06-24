@@ -2,6 +2,10 @@ display-name: 'Netherite Shield'
 permission-node: 'none'
 no-permission: '&cYou don''t have the permission to build Netherite Shield!'
 smithing: true
+features:
+  fire-proof: true
+  fall-damage-mitigation: true
+  fire-resistance: true
 hide-attribute: false
 attributes:
   ATTACK_DAMAGE: 2
@@ -12,7 +16,7 @@ crafting:
   enabled: false
   items:
     W:
-    - ACACIA_PLANKS
+   - ACACIA_PLANKS
     - BIRCH_PLANKS
     - CRIMSON_PLANKS
     - DARK_OAK_PLANKS
@@ -22,6 +26,6 @@ crafting:
     - WARPED_PLANKS
     N: NETHERITE_INGOT
   shape:
-  - 'WNW'
+ - 'WNW'
   - 'WWW'
   - ' W '
