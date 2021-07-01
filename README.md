@@ -9,6 +9,7 @@ NetheriteShield is a server mod that adds a powerful shield to your server.
 * **Custom permission**; Limit your player from abusing it!
 * **Custom display name**; Show your creativity on the most powerful shield!
 * **Custom recipe**; Customize your own shield recipe!
+* **Custom-Model supports**; Perfect work with your amazing textures!
 * **Custom attributes**; Modify the attribute value in any way!
 * **Fireproof**; Your shield won't be burned anymore, just like the other netherite armor!
 * **Fire resistance**; Catch on fire? Don't worry, your shield would save your life!
