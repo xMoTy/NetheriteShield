@@ -3,6 +3,10 @@ permission-node: 'none'
 no-permission: '&cYou don''t have the permission to build Netherite Shield!'
 smithing: true
 features:
+  unbreakable: false
+  custom-model:
+    enabled: false
+    data: 1
   fire-proof: true
   fall-damage-mitigation: true
   fire-resistance: true

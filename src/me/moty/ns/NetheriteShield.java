@@ -52,7 +52,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	private String displayName;
 	private String permissionNode;
 	private String noPermission;
-	private boolean craftable, smithing, hideAttribute, fallMitigation, fireResistance, fireProof;
+	private boolean craftable, smithing, hideAttribute, fallMitigation, fireResistance, fireProof, unbreakable;
+	private int customModel;
 	public DyeColor baseColor;
 	public List<Pattern> patterns;
 	private HashMap<Attribute, Double> attributes = new HashMap<>();
@@ -67,24 +68,27 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		Bukkit.getConsoleSender()
 				.sendMessage(ChatColor.WHITE + "Powered by xMoTy#3812 | Version. " + getDescription().getVersion());
 		Bukkit.getConsoleSender().sendMessage(ChatColor.DARK_GRAY + "�ССССССССССССССССССССС�");
-		if (!new File(getDataFolder().getAbsolutePath() + "/config.yml").exists()) {
-			getDataFolder().mkdir();
-			saveResource("config.yml", false);
-		}
 		getVersion(version -> {
 			if (!this.getDescription().getVersion().equalsIgnoreCase(version)) {
-				this.getLogger().info(ChatColor.LIGHT_PURPLE + "There is a new update available: " + version);
+				Bukkit.getConsoleSender()
+						.sendMessage(ChatColor.LIGHT_PURPLE + "There is a new update available: " + version);
 			}
 		});
 		new Metrics(this, 11196);
 		reloadConfiguration();
 
 		getCommand("netheriteshield").setExecutor(new CommandNetheriteShield(this));
+		getCommand("netheriteshield").setTabCompleter(new CommandNetheriteShield(this));
 		getServer().getPluginManager().registerEvents(this, this);
 	}
 
 	@SuppressWarnings("unchecked")
 	public void reloadConfiguration() {
+		if (!new File(getDataFolder().getAbsolutePath() + "/config.yml").exists()) {
+			getDataFolder().mkdir();
+			saveResource("config.yml", false);
+		}
+		reloadConfig();
 		this.config = this.getConfig();
 		this.displayName = config.isSet("display-name") ? config.getString("display-name") : "Netherite Shield";
 		this.permissionNode = config.isSet("permission-node")
@@ -105,6 +109,10 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				: true;
 		this.fireResistance = config.isSet("features.fire-resistance") ? config.getBoolean("features.fire-resistance")
 				: true;
+		this.unbreakable = config.isSet("features.unbreakable") ? config.getBoolean("features.unbreakable") : false;
+		this.customModel = config.isSet("features.custom-model")
+				? config.isSet("features.custom-model.enabled") ? config.getInt("features.custom-model.data") : -1
+				: -1;
 		this.fireProof = config.isSet("features.fire-proof") ? config.getBoolean("features.fire-proof") : true;
 		this.hideAttribute = config.isSet("hide-attribute") ? config.getBoolean("hide-attribute") : false;
 
@@ -185,22 +193,24 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 
 		if (!shield.getItemMeta().hasDisplayName())
 			meta.setDisplayName(ChatColor.RESET + ChatColor.translateAlternateColorCodes('&', displayName));
-
+		meta.setUnbreakable(unbreakable);
 		meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
 		if (!attributes.isEmpty())
-			for (Attribute att : attributes.keySet()) {
+			attributes.keySet().stream().forEach(att -> {
 				meta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(), attributes.get(att),
 						AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
 				if (att != Attribute.GENERIC_ATTACK_DAMAGE && att != Attribute.GENERIC_ATTACK_KNOCKBACK
 						&& att != Attribute.GENERIC_ATTACK_SPEED)
 					meta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(),
 							attributes.get(att), AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.OFF_HAND));
-			}
-
+			});
 		meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "neitherite-shield");
-
+		if (customModel != -1) {
+			meta.setCustomModelData(customModel);
+		}
 		if (hideAttribute) {
 			meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+			meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
 		}
 		shield.setItemMeta(bmeta);
 
