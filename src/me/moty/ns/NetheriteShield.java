@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -14,8 +15,10 @@ import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
+import org.bukkit.GameRule;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
 import org.bukkit.Tag;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
@@ -31,20 +34,25 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.AnvilInventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.SmithingRecipe;
+import org.bukkit.inventory.meta.BannerMeta;
 import org.bukkit.inventory.meta.BlockStateMeta;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Consumer;
 
 public class NetheriteShield extends JavaPlugin implements Listener {
@@ -52,8 +60,10 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	private String displayName;
 	private String permissionNode;
 	private String noPermission;
-	private boolean craftable, smithing, hideAttribute, fallMitigation, fireResistance, fireProof, unbreakable;
-	private int customModel;
+	private boolean craftable, smithing, hideAttribute, fallMitigation, fireResistance, fireProof, unbreakable,
+			keepInInv;
+	private int customModel, costLevel;
+	private double repairable;
 	public DyeColor baseColor;
 	public List<Pattern> patterns;
 	private HashMap<Attribute, Double> attributes = new HashMap<>();
@@ -111,9 +121,19 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				: true;
 		this.unbreakable = config.isSet("features.unbreakable") ? config.getBoolean("features.unbreakable") : false;
 		this.customModel = config.isSet("features.custom-model")
-				? config.isSet("features.custom-model.enabled") ? config.getInt("features.custom-model.data") : -1
+				? config.getBoolean("features.custom-model.enabled") ? config.getInt("features.custom-model.data") : -1
 				: -1;
 		this.fireProof = config.isSet("features.fire-proof") ? config.getBoolean("features.fire-proof") : true;
+		this.keepInInv = config.isSet("features.keep-in-inventory") ? config.getBoolean("features.keep-in-inventory")
+				: false;
+		this.repairable = config.isSet("features.repairable")
+				? config.getBoolean("features.repairable.enabled") ? config.getDouble("features.repairable.add-percent")
+						: -1
+				: -1;
+		this.costLevel = config.isSet("features.repairable")
+				? config.getBoolean("features.repairable.enabled") ? config.getInt("features.repairable.cost-level")
+						: -1
+				: -1;
 		this.hideAttribute = config.isSet("hide-attribute") ? config.getBoolean("hide-attribute") : false;
 
 		if (smithing) {
@@ -182,12 +202,13 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		}
 		ItemMeta meta = shield.getItemMeta();
 		BlockStateMeta bmeta = (BlockStateMeta) meta;
-
 		Banner banner = (Banner) bmeta.getBlockState();
+
 		banner.setBaseColor(baseColor);
 		for (Pattern pat : patterns) {
 			banner.addPattern(pat);
 		}
+
 		banner.update();
 		bmeta.setBlockState(banner);
 
@@ -210,7 +231,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		}
 		if (hideAttribute) {
 			meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-			meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
+			if (unbreakable)
+				meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
 		}
 		shield.setItemMeta(bmeta);
 
@@ -226,13 +248,23 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			return;
 		}
 		ItemMeta meta = shield.getItemMeta();
-		BlockStateMeta bmeta = (BlockStateMeta) meta;
-		Banner banner = (Banner) bmeta.getBlockState();
-		if (banner.numberOfPatterns() > 0) {
-			config.set("patterns", banner.getPatterns());
-			config.set("base-color", banner.getBaseColor().name());
-			saveConfig();
-			reloadConfiguration();
+		if (shield.getType() == Material.SHIELD) {
+			BlockStateMeta bmeta = (BlockStateMeta) meta;
+			Banner banner = (Banner) bmeta.getBlockState();
+			if (banner.numberOfPatterns() > 0) {
+				config.set("patterns", banner.getPatterns());
+				config.set("base-color", banner.getBaseColor().name());
+				saveConfig();
+				reloadConfiguration();
+			}
+		} else if (shield.getType().name().contains("BANNER")) {
+			BannerMeta banner = (BannerMeta) meta;
+			if (banner.numberOfPatterns() > 0) {
+				config.set("patterns", banner.getPatterns());
+				config.set("base-color", shield.getType().name().replace("_BANNER", ""));
+				saveConfig();
+				reloadConfiguration();
+			}
 		}
 	}
 
@@ -273,7 +305,61 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 					return;
 				}
 			}
+		} else if (e.getInventory().getType() == InventoryType.ANVIL && repairable != -1 && costLevel != -1) {
+			if (e.getInventory().getItem(0) == null)
+				return;
+			if (!e.getInventory().getItem(0).hasItemMeta())
+				return;
+			if (!e.getInventory().getItem(0).getItemMeta().getPersistentDataContainer().has(key,
+					PersistentDataType.STRING))
+				return;
+			if (((Damageable) e.getInventory().getItem(0).getItemMeta()).getDamage() == 0)
+				return;
+			if (this.permissionNode != null && !e.getWhoClicked().hasPermission(this.permissionNode)) {
+				e.setCancelled(true);
+				e.getWhoClicked().closeInventory();
+				e.getWhoClicked().sendMessage(ChatColor.translateAlternateColorCodes('&', this.noPermission));
+				return;
+			}
+			if (!e.isLeftClick())
+				return;
+			AnvilInventory anvil = (AnvilInventory) e.getInventory();
+			if (e.getInventory().getItem(2) == null && (e.getAction().name().contains("PLACE")
+					|| e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY)) {
+				new BukkitRunnable() {
+					@Override
+					public void run() {
+						if (e.getInventory().getItem(1) == null) {
+							return;
+						}
+						ItemStack shield = e.getInventory().getItem(0).clone();
+						ItemMeta meta = shield.getItemMeta();
+						Damageable damage = (Damageable) meta;
+						int left = shield.getType().getMaxDurability() - damage.getDamage();
+						damage.setDamage(damage.getDamage() - (int) Math.round(left * repairable / 100));
+						shield.setItemMeta(meta);
+						e.getInventory().setItem(2, shield);
+						anvil.setRepairCost(costLevel);
+					}
+				}.runTaskLater(this, 1);
+			} else if (e.getRawSlot() == 2 && ((Player) e.getWhoClicked()).getLevel() >= anvil.getRepairCost()) {
+				if (e.getInventory().getItem(1) == null)
+					return;
+				if (e.getInventory().getItem(1).getType() != Material.NETHERITE_INGOT)
+					return;
+				e.setCancelled(true);
+				((Player) e.getWhoClicked()).setLevel(((Player) e.getWhoClicked()).getLevel() - anvil.getRepairCost());
+				e.getWhoClicked().setItemOnCursor(e.getInventory().getItem(2));
+				e.getInventory().setItem(0, null);
+				ItemStack netherite = e.getInventory().getItem(2).clone();
+				netherite.setAmount(netherite.getAmount() - 1);
+				e.getInventory().setItem(1, netherite);
+				e.getInventory().setItem(2, null);
+				e.getWhoClicked().getWorld().playSound(e.getWhoClicked().getLocation(), Sound.BLOCK_ANVIL_USE, 1F, 1F);
+				return;
+			}
 		}
+
 	}
 
 	@EventHandler
@@ -295,6 +381,28 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			}
 		}
 	}
+
+	@EventHandler
+	public void onDeath(PlayerDeathEvent e) {
+		if (!this.keepInInv)
+			return;
+		if (e.getEntity().getWorld().getGameRuleValue(GameRule.KEEP_INVENTORY))
+			return;
+		List<ItemStack> removed = new ArrayList<>();
+		e.getDrops().stream()
+				.filter(is -> is.getType() == Material.SHIELD && is.hasItemMeta()
+						&& is.getItemMeta().getPersistentDataContainer().has(key, PersistentDataType.STRING))
+				.forEach(is -> {
+					removed.add(is);
+					new BukkitRunnable() {
+						@Override
+						public void run() {
+							e.getEntity().getInventory().addItem(is);
+						}
+					}.runTaskLater(this, 2);
+				});
+		e.getDrops().removeAll(removed);
+	};
 
 	@EventHandler
 	public void onEntityDamage(EntityDamageEvent e) {

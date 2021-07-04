@@ -10,6 +10,11 @@ features:
   fire-proof: true
   fall-damage-mitigation: true
   fire-resistance: true
+  keep-in-inventory: false
+  repairable:
+    enabled: false
+    cost-level: 2
+    add-percent: 25
 hide-attribute: false
 attributes:
   ATTACK_DAMAGE: 2

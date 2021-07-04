@@ -35,6 +35,10 @@ public class CommandNetheriteShield implements CommandExecutor, TabCompleter {
 				ns.setPatterns(p.getInventory().getItemInMainHand());
 				p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aSet successfully!"));
 				return true;
+			} else if (p.getInventory().getItemInMainHand().getType().name().contains("BANNER")) {
+				ns.setPatterns(p.getInventory().getItemInMainHand());
+				p.sendMessage(ChatColor.translateAlternateColorCodes('&', "&aSet successfully!"));
+				return true;
 			}
 		} else if (args[0].equalsIgnoreCase("reset")) {
 			ns.setPatterns(null);
