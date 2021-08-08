@@ -61,10 +61,11 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	private String permissionNode;
 	private String noPermission;
 	private boolean craftable, smithing, hideAttribute, fallMitigation, fireResistance, fireProof, unbreakable,
-			keepInInv;
+			keepInInv, noPattern;
 	private int customModel, costLevel;
 	private double repairable;
 	public DyeColor baseColor;
+	private List<String> lores;
 	public List<Pattern> patterns;
 	private HashMap<Attribute, Double> attributes = new HashMap<>();
 	private NamespacedKey key = new NamespacedKey(this, "neitherite-shield");
@@ -111,6 +112,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				: Arrays.asList(new Pattern(DyeColor.GRAY, PatternType.GRADIENT),
 						new Pattern(DyeColor.GRAY, PatternType.BORDER),
 						new Pattern(DyeColor.BLACK, PatternType.TRIANGLE_TOP));
+		this.noPattern = config.isSet("no-pattern") ? config.getBoolean("no-pattern") : false;
 		this.baseColor = config.isSet("base-color") ? DyeColor.valueOf(config.getString("base-color")) : DyeColor.BLACK;
 		this.craftable = config.isSet("crafting") ? config.getBoolean("crafting.enabled") : false;
 		this.smithing = config.isSet("smithing") ? config.getBoolean("smithing") : true;
@@ -134,6 +136,10 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				? config.getBoolean("features.repairable.enabled") ? config.getInt("features.repairable.cost-level")
 						: -1
 				: -1;
+		this.lores = config.isSet("features.lore")
+				? config.getBoolean("features.lore.enabled") ? config.getStringList("features.lore.text")
+						: new ArrayList<>()
+				: new ArrayList<>();
 		this.hideAttribute = config.isSet("hide-attribute") ? config.getBoolean("hide-attribute") : false;
 
 		if (smithing) {
@@ -200,39 +206,41 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		if (shield == null || shield.getType() != Material.SHIELD) {
 			shield = new ItemStack(Material.SHIELD);
 		}
-		ItemMeta meta = shield.getItemMeta();
-		BlockStateMeta bmeta = (BlockStateMeta) meta;
-		Banner banner = (Banner) bmeta.getBlockState();
+		BlockStateMeta bmeta = (BlockStateMeta) shield.getItemMeta();
+		if (!noPattern) {
+			Banner banner = (Banner) bmeta.getBlockState();
+			banner.setBaseColor(baseColor);
+			for (Pattern pat : patterns) {
+				banner.addPattern(pat);
+			}
 
-		banner.setBaseColor(baseColor);
-		for (Pattern pat : patterns) {
-			banner.addPattern(pat);
+			banner.update();
+			bmeta.setBlockState(banner);
 		}
-
-		banner.update();
-		bmeta.setBlockState(banner);
-
 		if (!shield.getItemMeta().hasDisplayName())
-			meta.setDisplayName(ChatColor.RESET + ChatColor.translateAlternateColorCodes('&', displayName));
-		meta.setUnbreakable(unbreakable);
-		meta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
+			bmeta.setDisplayName(ChatColor.RESET + ChatColor.translateAlternateColorCodes('&', displayName));
+		if (!lores.isEmpty())
+			bmeta.setLore(lores.stream().map(str -> ChatColor.translateAlternateColorCodes('&', str))
+					.collect(Collectors.toList()));
+		bmeta.setUnbreakable(unbreakable);
+		bmeta.addItemFlags(ItemFlag.HIDE_POTION_EFFECTS);
 		if (!attributes.isEmpty())
 			attributes.keySet().stream().forEach(att -> {
-				meta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(), attributes.get(att),
-						AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
+				bmeta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(),
+						attributes.get(att), AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.HAND));
 				if (att != Attribute.GENERIC_ATTACK_DAMAGE && att != Attribute.GENERIC_ATTACK_KNOCKBACK
 						&& att != Attribute.GENERIC_ATTACK_SPEED)
-					meta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(),
+					bmeta.addAttributeModifier(att, new AttributeModifier(UUID.randomUUID(), att.name(),
 							attributes.get(att), AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.OFF_HAND));
 			});
-		meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "neitherite-shield");
+		bmeta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "neitherite-shield");
 		if (customModel != -1) {
-			meta.setCustomModelData(customModel);
+			bmeta.setCustomModelData(customModel);
 		}
 		if (hideAttribute) {
-			meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+			bmeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
 			if (unbreakable)
-				meta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
+				bmeta.addItemFlags(ItemFlag.HIDE_UNBREAKABLE);
 		}
 		shield.setItemMeta(bmeta);
 
