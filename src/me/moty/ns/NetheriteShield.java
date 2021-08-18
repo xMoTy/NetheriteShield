@@ -60,8 +60,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	private String displayName;
 	private String permissionNode;
 	private String noPermission;
-	private boolean craftable, smithing, hideAttribute, fallMitigation, fireResistance, fireProof, unbreakable,
-			keepInInv, noPattern;
+	private boolean craftable, smithing, hideAttribute, fallMitigation, fireResistance, lightningProtect, fireProof,
+			unbreakable, keepInInv, noPattern;
 	private int customModel, costLevel;
 	private double repairable;
 	public DyeColor baseColor;
@@ -93,7 +93,6 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		getServer().getPluginManager().registerEvents(this, this);
 	}
 
-	@SuppressWarnings("unchecked")
 	public void reloadConfiguration() {
 		if (!new File(getDataFolder().getAbsolutePath() + "/config.yml").exists()) {
 			getDataFolder().mkdir();
@@ -108,6 +107,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				: null;
 		this.noPermission = config.isSet("no-permission") ? config.getString("no-permission")
 				: "&cYou don't have permission to smith Netherite Shield!";
+		
 		this.patterns = config.isSet("patterns") ? (List<Pattern>) config.getList("patterns")
 				: Arrays.asList(new Pattern(DyeColor.GRAY, PatternType.GRADIENT),
 						new Pattern(DyeColor.GRAY, PatternType.BORDER),
@@ -118,6 +118,9 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		this.smithing = config.isSet("smithing") ? config.getBoolean("smithing") : true;
 		this.fallMitigation = config.isSet("features.fall-damage-mitigation")
 				? config.getBoolean("features.fall-damage-mitigation")
+				: true;
+		this.lightningProtect = config.isSet("features.lightning-protect")
+				? config.getBoolean("features.lightning-protect")
 				: true;
 		this.fireResistance = config.isSet("features.fire-resistance") ? config.getBoolean("features.fire-resistance")
 				: true;
@@ -415,18 +418,22 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	@EventHandler
 	public void onEntityDamage(EntityDamageEvent e) {
 		if (e.getEntityType() == EntityType.DROPPED_ITEM) {
-			if (!this.fireProof)
-				return;
 			if (!(e.getEntity() instanceof Item))
 				return;
-			if (e.getCause() != DamageCause.LAVA && e.getCause() != DamageCause.FIRE
-					&& e.getCause() != DamageCause.FIRE_TICK && e.getCause() != DamageCause.HOT_FLOOR)
-				return;
-			ItemStack is = ((Item) e.getEntity()).getItemStack();
-			if (is.getType() == Material.SHIELD
-					&& is.getItemMeta().getPersistentDataContainer().has(key, PersistentDataType.STRING)) {
-				e.setCancelled(true);
-				return;
+			if (this.fireProof && (e.getCause() == DamageCause.LAVA || e.getCause() == DamageCause.FIRE
+					|| e.getCause() == DamageCause.FIRE_TICK || e.getCause() == DamageCause.HOT_FLOOR)) {
+				ItemStack is = ((Item) e.getEntity()).getItemStack();
+				if (is.getType() == Material.SHIELD
+						&& is.getItemMeta().getPersistentDataContainer().has(key, PersistentDataType.STRING)) {
+					e.setCancelled(true);
+				}
+			}
+			if (this.lightningProtect && e.getCause() == DamageCause.LIGHTNING) {
+				ItemStack is = ((Item) e.getEntity()).getItemStack();
+				if (is.getType() == Material.SHIELD
+						&& is.getItemMeta().getPersistentDataContainer().has(key, PersistentDataType.STRING)) {
+					e.setCancelled(true);
+				}
 			}
 		} else if (e.getEntityType() == EntityType.PLAYER) {
 			Player p = (Player) e.getEntity();

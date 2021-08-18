@@ -8,6 +8,7 @@ features:
   custom-model:
     enabled: false
     data: 1
+  lightning-protect: true
   fire-proof: true
   fall-damage-mitigation: true
   fire-resistance: true
