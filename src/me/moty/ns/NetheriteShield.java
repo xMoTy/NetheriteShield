@@ -93,6 +93,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		getServer().getPluginManager().registerEvents(this, this);
 	}
 
+	@SuppressWarnings("unchecked")
 	public void reloadConfiguration() {
 		if (!new File(getDataFolder().getAbsolutePath() + "/config.yml").exists()) {
 			getDataFolder().mkdir();
