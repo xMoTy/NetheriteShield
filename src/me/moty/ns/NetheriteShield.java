@@ -108,7 +108,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				: null;
 		this.noPermission = config.isSet("no-permission") ? config.getString("no-permission")
 				: "&cYou don't have permission to smith Netherite Shield!";
-		
+
 		this.patterns = config.isSet("patterns") ? (List<Pattern>) config.getList("patterns")
 				: Arrays.asList(new Pattern(DyeColor.GRAY, PatternType.GRADIENT),
 						new Pattern(DyeColor.GRAY, PatternType.BORDER),
@@ -214,9 +214,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		if (!noPattern) {
 			Banner banner = (Banner) bmeta.getBlockState();
 			banner.setBaseColor(baseColor);
-			for (Pattern pat : patterns) {
+			for (Pattern pat : patterns)
 				banner.addPattern(pat);
-			}
 
 			banner.update();
 			bmeta.setBlockState(banner);
@@ -263,20 +262,16 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		if (shield.getType() == Material.SHIELD) {
 			BlockStateMeta bmeta = (BlockStateMeta) meta;
 			Banner banner = (Banner) bmeta.getBlockState();
-			if (banner.numberOfPatterns() > 0) {
-				config.set("patterns", banner.getPatterns());
-				config.set("base-color", banner.getBaseColor().name());
-				saveConfig();
-				reloadConfiguration();
-			}
+			config.set("patterns", banner.getPatterns());
+			config.set("base-color", banner.getBaseColor().name());
+			saveConfig();
+			reloadConfiguration();
 		} else if (shield.getType().name().contains("BANNER")) {
 			BannerMeta banner = (BannerMeta) meta;
-			if (banner.numberOfPatterns() > 0) {
-				config.set("patterns", banner.getPatterns());
-				config.set("base-color", shield.getType().name().replace("_BANNER", ""));
-				saveConfig();
-				reloadConfiguration();
-			}
+			config.set("patterns", banner.getPatterns());
+			config.set("base-color", shield.getType().name().replace("_BANNER", ""));
+			saveConfig();
+			reloadConfiguration();
 		}
 	}
 
