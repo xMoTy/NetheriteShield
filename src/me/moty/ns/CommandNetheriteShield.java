@@ -21,12 +21,10 @@ public class CommandNetheriteShield implements CommandExecutor, TabCompleter {
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command arg1, String arg2, String[] args) {
-		if (!sender.isOp()) {
+		if (!sender.isOp())
 			return false;
-		}
-		if (args.length < 1) {
+		if (args.length < 1)
 			return false;
-		}
 		if (args[0].equalsIgnoreCase("set")) {
 			if (!(sender instanceof Player))
 				return false;
@@ -42,19 +40,17 @@ public class CommandNetheriteShield implements CommandExecutor, TabCompleter {
 			}
 		} else if (args[0].equalsIgnoreCase("reset")) {
 			ns.setPatterns(null);
-			if (sender instanceof Player) {
+			if (sender instanceof Player)
 				((Player) sender).sendMessage(ChatColor.translateAlternateColorCodes('&', "&aReset successfully!"));
-			} else {
+			else
 				sender.sendMessage("Reset successfully!");
-			}
 		} else if (args[0].equalsIgnoreCase("reload")) {
 			ns.reloadConfig();
 			ns.reloadConfiguration();
-			if (sender instanceof Player) {
+			if (sender instanceof Player)
 				((Player) sender).sendMessage(ChatColor.translateAlternateColorCodes('&', "&aReloaded successfully!"));
-			} else {
+			else
 				sender.sendMessage("Reloaded successfully!");
-			}
 			return true;
 		} else if (args[0].equalsIgnoreCase("get")) {
 			if (!(sender instanceof Player))
@@ -79,12 +75,10 @@ public class CommandNetheriteShield implements CommandExecutor, TabCompleter {
 
 	@Override
 	public List<String> onTabComplete(CommandSender sender, Command cmd, String arg2, String[] args) {
-		if (!sender.isOp()) {
+		if (!sender.isOp())
 			return null;
-		}
-		if (args.length == 1) {
+		if (args.length == 1)
 			return Arrays.asList("set", "reset", "reload", "get", "give");
-		}
 		return null;
 	}
 }

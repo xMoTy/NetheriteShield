@@ -278,6 +278,12 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	@EventHandler
 	public void onInventoryClick(InventoryClickEvent e) {
 		if (e.getInventory().getType() == InventoryType.SMITHING && smithing) {
+			if (e.getInventory().getItem(0) == null)
+				return;
+			if (e.getInventory().getItem(1) == null)
+				return;
+			if (e.getInventory().getItem(e.getRawSlot()) == null)
+				return;
 			if (e.isLeftClick() && e.getRawSlot() == 2) {
 				if (e.getInventory().getItem(0).getType() == Material.SHIELD
 						&& e.getInventory().getItem(1).getType() == Material.NETHERITE_INGOT
