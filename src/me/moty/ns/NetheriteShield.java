@@ -216,7 +216,6 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			banner.setBaseColor(baseColor);
 			for (Pattern pat : patterns)
 				banner.addPattern(pat);
-
 			banner.update();
 			bmeta.setBlockState(banner);
 		}
@@ -338,23 +337,21 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				return;
 			AnvilInventory anvil = (AnvilInventory) e.getInventory();
 			if (e.getInventory().getItem(2) == null && (e.getAction().name().contains("PLACE")
-					|| e.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY)) {
-				new BukkitRunnable() {
-					@Override
-					public void run() {
-						if (e.getInventory().getItem(1) == null) {
-							return;
-						}
-						ItemStack shield = e.getInventory().getItem(0).clone();
-						ItemMeta meta = shield.getItemMeta();
-						Damageable damage = (Damageable) meta;
-						int left = shield.getType().getMaxDurability() - damage.getDamage();
-						damage.setDamage(damage.getDamage() - (int) Math.round(left * repairable / 100));
-						shield.setItemMeta(meta);
-						e.getInventory().setItem(2, shield);
-						anvil.setRepairCost(costLevel);
-					}
-				}.runTaskLater(this, 1);
+					|| e.getAction().equals(InventoryAction.MOVE_TO_OTHER_INVENTORY))) {
+				this.getServer().getScheduler().runTaskLater(this, () -> {
+					if (e.getInventory().getItem(1) == null)
+						return;
+					if (!e.getInventory().getItem(1).getType().equals(Material.NETHERITE_INGOT))
+						return;
+					ItemStack shield = e.getInventory().getItem(0).clone();
+					ItemMeta meta = shield.getItemMeta();
+					Damageable damage = (Damageable) meta;
+					int left = shield.getType().getMaxDurability() - damage.getDamage();
+					damage.setDamage(damage.getDamage() - (int) Math.round(left * repairable / 100));
+					shield.setItemMeta(meta);
+					e.getInventory().setItem(2, shield);
+					anvil.setRepairCost(costLevel);
+				}, 1);
 			} else if (e.getRawSlot() == 2 && ((Player) e.getWhoClicked()).getLevel() >= anvil.getRepairCost()) {
 				if (e.getInventory().getItem(1) == null)
 					return;
