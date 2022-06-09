@@ -44,6 +44,7 @@ public class CommandNetheriteShield implements CommandExecutor, TabCompleter {
 				((Player) sender).sendMessage(ChatColor.translateAlternateColorCodes('&', "&aReset successfully!"));
 			else
 				sender.sendMessage("Reset successfully!");
+			return true;
 		} else if (args[0].equalsIgnoreCase("reload")) {
 			ns.reloadConfig();
 			ns.reloadConfiguration();

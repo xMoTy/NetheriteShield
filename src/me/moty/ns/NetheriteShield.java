@@ -80,10 +80,10 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				.sendMessage(ChatColor.WHITE + "Powered by xMoTy#3812 | Version. " + getDescription().getVersion());
 		Bukkit.getConsoleSender().sendMessage(ChatColor.DARK_GRAY + "�ССССССССССССССССССССС�");
 		getVersion(version -> {
-			if (!this.getDescription().getVersion().equalsIgnoreCase(version)) {
+			if (!this.getDescription().getVersion().equalsIgnoreCase(version))
 				Bukkit.getConsoleSender()
 						.sendMessage(ChatColor.LIGHT_PURPLE + "There is a new update available: " + version);
-			}
+
 		});
 		new Metrics(this, 11196);
 		reloadConfiguration();
@@ -150,25 +150,21 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			SmithingRecipe smith = new SmithingRecipe(key, new ItemStack(Material.SHIELD),
 					new RecipeChoice.MaterialChoice(Material.SHIELD),
 					new RecipeChoice.MaterialChoice(Material.NETHERITE_INGOT));
-
-			if (this.getServer().getRecipe(key) != null) {
+			if (this.getServer().getRecipe(key) != null)
 				this.getServer().removeRecipe(key);
-			}
 			this.getServer().addRecipe(smith);
 		}
-		if (config.isSet("attributes")) {
-			for (String key : config.getConfigurationSection("attributes").getKeys(false)) {
+		if (config.isSet("attributes"))
+			for (String key : config.getConfigurationSection("attributes").getKeys(false))
 				attributes.put(Attribute.valueOf("GENERIC_" + key), config.getDouble("attributes." + key));
-			}
-		} else {
+		else {
 			attributes.put(Attribute.GENERIC_ATTACK_DAMAGE, 2D);
 			attributes.put(Attribute.GENERIC_ATTACK_SPEED, -1.5D);
 			attributes.put(Attribute.GENERIC_MOVEMENT_SPEED, -0.02D);
 			attributes.put(Attribute.GENERIC_MAX_HEALTH, 4D);
 		}
-		if (this.getServer().getRecipe(crafting) != null) {
+		if (this.getServer().getRecipe(crafting) != null)
 			this.getServer().removeRecipe(crafting);
-		}
 		if (craftable) {
 			ShapedRecipe craft = new ShapedRecipe(crafting, makeShield(null));
 			List<String> shape = config.isSet("crafting.shape") ? config.getStringList("crafting.shape")
@@ -176,13 +172,12 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 			craft.shape(shape.toArray(new String[3]));
 			if (config.isSet("crafting.items")) {
 				for (String key : config.getConfigurationSection("crafting.items").getKeys(false)) {
-					if (config.get("crafting.items." + key) instanceof String) {
+					if (config.get("crafting.items." + key) instanceof String)
 						craft.setIngredient(key.charAt(0), Material.valueOf(config.getString("crafting.items." + key)));
-					} else {
+					else
 						craft.setIngredient(key.charAt(0),
 								new RecipeChoice.MaterialChoice(config.getStringList("crafting.items." + key).stream()
 										.map(mat -> Material.valueOf(mat)).collect(Collectors.toList())));
-					}
 				}
 			} else {
 				craft.setIngredient('W', new RecipeChoice.MaterialChoice(Tag.PLANKS));
@@ -197,9 +192,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 		Bukkit.getScheduler().runTaskAsynchronously(this, () -> {
 			try (InputStream inputStream = new URL("https://api.spigotmc.org/legacy/update.php?resource=" + "91813")
 					.openStream(); Scanner scanner = new Scanner(inputStream)) {
-				if (scanner.hasNext()) {
+				if (scanner.hasNext())
 					consumer.accept(scanner.next());
-				}
 			} catch (IOException exception) {
 				this.getLogger().info("Cannot look for updates: " + exception.getMessage());
 			}
@@ -207,9 +201,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 	}
 
 	public ItemStack makeShield(ItemStack shield) {
-		if (shield == null || shield.getType() != Material.SHIELD) {
+		if (shield == null || shield.getType() != Material.SHIELD)
 			shield = new ItemStack(Material.SHIELD);
-		}
 		BlockStateMeta bmeta = (BlockStateMeta) shield.getItemMeta();
 		if (!noPattern) {
 			Banner banner = (Banner) bmeta.getBlockState();
@@ -236,9 +229,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 							attributes.get(att), AttributeModifier.Operation.ADD_NUMBER, EquipmentSlot.OFF_HAND));
 			});
 		bmeta.getPersistentDataContainer().set(key, PersistentDataType.STRING, "neitherite-shield");
-		if (customModel != -1) {
+		if (customModel != -1)
 			bmeta.setCustomModelData(customModel);
-		}
 		if (hideAttribute) {
 			bmeta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
 			if (unbreakable)
@@ -374,9 +366,8 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 
 	@EventHandler
 	public void onRaiseShield(PlayerInteractEvent e) {
-		if (!this.fireResistance) {
+		if (!this.fireResistance)
 			return;
-		}
 		if (e.getMaterial() == Material.SHIELD
 				&& e.getItem().getItemMeta().getPersistentDataContainer().has(key, PersistentDataType.STRING)
 				&& (e.getAction() == Action.RIGHT_CLICK_AIR || e.getAction() == Action.RIGHT_CLICK_BLOCK)) {
