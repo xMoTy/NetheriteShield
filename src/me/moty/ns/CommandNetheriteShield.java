@@ -21,7 +21,7 @@ public class CommandNetheriteShield implements CommandExecutor, TabCompleter {
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command arg1, String arg2, String[] args) {
-		if (!sender.isOp())
+		if (!sender.isOp() && !sender.hasPermission("ns.admin"))
 			return false;
 		if (args.length < 1)
 			return false;

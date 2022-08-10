@@ -73,12 +73,12 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 
 	@Override
 	public void onEnable() {
-		Bukkit.getConsoleSender().sendMessage(ChatColor.DARK_GRAY + "�ССССССССССССССССССССС�");
+		Bukkit.getConsoleSender().sendMessage(ChatColor.DARK_GRAY + "");
 		Bukkit.getConsoleSender()
 				.sendMessage(ChatColor.LIGHT_PURPLE + "NetheriteShield" + ChatColor.WHITE + " Enabled");
 		Bukkit.getConsoleSender()
 				.sendMessage(ChatColor.WHITE + "Powered by xMoTy#3812 | Version. " + getDescription().getVersion());
-		Bukkit.getConsoleSender().sendMessage(ChatColor.DARK_GRAY + "�ССССССССССССССССССССС�");
+		Bukkit.getConsoleSender().sendMessage(ChatColor.DARK_GRAY + "");
 		getVersion(version -> {
 			if (!this.getDescription().getVersion().equalsIgnoreCase(version))
 				Bukkit.getConsoleSender()
@@ -275,7 +275,7 @@ public class NetheriteShield extends JavaPlugin implements Listener {
 				return;
 			if (e.getInventory().getItem(e.getRawSlot()) == null)
 				return;
-			if (e.isLeftClick() && e.getRawSlot() == 2) {
+			if (e.getRawSlot() == 2) {
 				if (e.getInventory().getItem(0).getType() == Material.SHIELD
 						&& e.getInventory().getItem(1).getType() == Material.NETHERITE_INGOT
 						&& e.getInventory().getItem(e.getRawSlot()).getType() == Material.SHIELD) {
